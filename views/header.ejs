@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ru">
+	<head>
+		<title><%= data.title %></title>
+		<meta name="description" content="<%= data.desc ? data.desc : data.title %>" />
+    	<meta name="viewport" content="width=device-width, initial-scale=1">
+    	<link rel="stylesheet" href="/files/style.css">
+		<link rel="shortcut icon" href="/files/favicon.png" type="image/png">
+	</head>
+	<body>
+    	<div id='container'>
+			<header id='header'>
+				<div class='brand'>Sitename</div>
+				<div class="menu"></div>
+			</header>
+		<section>
+			<h1><%= data.title %></h1>
