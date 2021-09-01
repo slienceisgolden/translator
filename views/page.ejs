@@ -1,0 +1,14 @@
+<%- include('header'); %>
+<h1><%= data.title %></h1>
+<article class="article">
+    <%= data.page.text %>
+</article>
+<div class="columns">
+    <div class='column'>
+        <%- data.page.prev ? `<a href="/p/${data.page.prev.id}">&laquo; ${data.page.prev.title}</a>` : '' %>
+    </div>
+    <div class='column' style='text-align: right;'>
+        <%- data.page.next ? `<a href="/p/${data.page.next.id}">${data.page.next.title} &raquo;</a>` : '' %>
+    </div>
+</div>
+<%- include('footer'); %>

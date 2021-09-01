@@ -1,3 +1,7 @@
 <%- include('header'); %>
-fsdsdf
+<% if (data.pages) for (let page of data.pages) { %> 
+    <h2><a href='/p/<%= page.id; %>'><%= page.title; %></a></h2>
+    <section class="article"><%= page.text.substr(0, 100); %></section>
+    <hr>
+<% } %>
 <%- include('footer'); %>
