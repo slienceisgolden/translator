@@ -1,74 +1,58 @@
-if (process.env.NODE_ENV != 'production') process.env.NODE_ENV = 'development'
-const express = require('express')
-const cookieParser = require('cookie-parser')
-const app = express()
-const adminka = require('./routes/adminka')
-const db = require('better-sqlite3')('data/db.sqlite');
-app.use(cookieParser())
-app.use(express.urlencoded({extended: true}));
-app.use(express.json())
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const wait = (usec) => new Promise((res) => { setTimeout(() => { res() }, usec) })
 
-const pagesCache = {}
+console.log('start');
 
-if (process.env.NODE_ENV == 'production') {
-  app.set('view cache', true)
-  app.set('x-powered-by', false)
-}
+(async () => {
+    const browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1366, height: 768});
+    await page.goto('https://www.deepl.com/ru/translator');
+    await wait(3000);
+    await page.waitForSelector('.dl_cookieBanner--buttonClose');
+    await page.click('.dl_cookieBanner--buttonClose');
+    await wait(3000);
+    await page.waitForSelector('.lmt__language_select--source .lmt__language_select__active__title');
+    await page.click('.lmt__language_select--source .lmt__language_select__active__title');
+    await wait(3000);
+    await page.waitForSelector('[dl-test="translator-lang-option-ru"]');
+    await page.click('[dl-test="translator-lang-option-ru"]');
+    await wait(3000);
+    await page.waitForSelector('.lmt__language_select--target .lmt__language_select__active__title');
+    await page.click('.lmt__language_select--target .lmt__language_select__active__title');
+    await wait(3000);
+    await page.waitForSelector('[dl-test="translator-lang-option-de-DE"]');
+    await page.click('[dl-test="translator-lang-option-de-DE"]');
+    await wait(3000);
+    await page.waitForSelector('.lmt__source_textarea');
+    await wait(3000);
 
-app.use(express.static('public'))
+    let text = 'hel';
 
-app.set('view engine', 'ejs')
-app.set('views', './views')
-
-app.use((req, res, next) => {
-  if (req.url.endsWith('/') && req.url != '/') {
-    res.redirect(301, req.url.replace(/\/$/,''))
-    return res.end()
-  }
-  next()
-})
-
-app.get('/', (req, res) => {
-  const data = {
-    title: 'Sitename'
-  }
-  data.pages = db.prepare('SELECT * FROM pages ORDER BY id DESC LIMIT 10').all();
-  res.render('index', {data})
-})
-
-// статья
-app.get('/p/:id', (req, res, next) => {
-  if (!req.params.id) return next();
-  let data = {}
-  if (pagesCache[req.params.id]) {
-    data.title = pagesCache[req.params.id].title;
-    data.page = pagesCache[req.params.id];
-  } else {
-    const page = db.prepare('SELECT id, title, text FROM pages WHERE id = ?').get(req.params.id);
-    if (!page) return next();
-    page.next = db.prepare('SELECT id, title FROM pages WHERE id > ? ORDER BY id ASC').get(req.params.id);
-    page.prev = db.prepare('SELECT id, title FROM pages WHERE id < ? ORDER BY id DESC').get(req.params.id);
-    data.title = page.title;
-    data.page = page;
-    const keys = Object.keys(pagesCache)
-    if (keys.length > 1000) {
-      const idx = Math.floor(Math.random() * keys.length)
-      const delKey = keys.splice(idx, 1)
-      delete pagesCache[delKey]
+    const files = fs.readdirSync(`./from`)
+    for (let file of files) {
+        console.log('-----------','file:', file,'-----------');
+        const data = JSON.parse(fs.readFileSync(`./from/${file}`, "utf8"));
+        for (let i in data) {
+            await page.$eval('.lmt__source_textarea', el => el.value = '');
+            await page.focus('.lmt__source_textarea');
+            await page.type('.lmt__source_textarea', data[i]);
+            await wait(10000);
+            await page.waitForSelector('#target-dummydiv')
+            let element = await page.$('#target-dummydiv')
+            let value = await page.evaluate(el => el.textContent, element);
+            if (text == value) {
+                console.log('---------- WAITING ----------');
+                await wait(10000);
+                value = await page.evaluate(el => el.textContent, element);
+            }
+            console.log(i, '|',data[i],' => ', value);
+            data[i] = value;            
+            text = value;            
+        }
+        const json = JSON.stringify(data, null, '\t')
+        fs.writeFileSync(`./to/${file}`, json)
     }
-    pagesCache[req.params.id] = page
-  }
-  res.render('page', {data})
-})
-
-app.use('/adminka', adminka)
-app.get('*', (req, res) => {
-  const data = {title: '404', noindex: true}
-  res.status(404)
-  res.render('p404', {data})
-})
-
-app.listen(3000, () => {
-  console.log('NODE_ENV:', process.env.NODE_ENV)
-})
-
+    await browser.close();
+})();
