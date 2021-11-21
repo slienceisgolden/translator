@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const wait = (usec) => new Promise((res) => { setTimeout(() => { res() }, usec) })
 
+const target = 'translator-lang-option-it-IT';
 console.log('start');
 
 (async () => {
@@ -22,8 +23,8 @@ console.log('start');
     await page.waitForSelector('.lmt__language_select--target .lmt__language_select__active__title');
     await page.click('.lmt__language_select--target .lmt__language_select__active__title');
     await wait(3000);
-    await page.waitForSelector('[dl-test="translator-lang-option-de-DE"]');
-    await page.click('[dl-test="translator-lang-option-de-DE"]');
+    await page.waitForSelector(`[dl-test="${target}"]`);
+    await page.click(`[dl-test="${target}"]`);
     await wait(3000);
     await page.waitForSelector('.lmt__source_textarea');
     await wait(3000);
